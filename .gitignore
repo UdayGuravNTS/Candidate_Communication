@@ -1,0 +1,25 @@
+# Python
+**/__pycache__/
+*.py[cod]
+**/venv/
+**/.venv/
+**/db.sqlite3
+**/db.sqlite3-*
+
+# Frontend dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+
+# Local configuration and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs and local tooling
+*.log
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.DS_Store
+Thumbs.db
