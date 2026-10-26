@@ -147,3 +147,15 @@ FRONTEND_BASE_URL = "http://localhost:5173"
 PROVIDER_URL = "http://localhost:9000"
 PROVIDER_WEBHOOK_SECRET = os.environ.get("PROVIDER_WEBHOOK_SECRET", "dev-secret")
 USE_TZ = True
+
+# ---------------------------------------------------------------------------
+# Email Configuration (Gmail SMTP)
+# ---------------------------------------------------------------------------
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'udayagurav@gmail.com'
+EMAIL_HOST_PASSWORD = 'ilgx stqu qrrk jkzv'
+DEFAULT_FROM_EMAIL = 'Hunar AI Recruiter <udayagurav@gmail.com>'

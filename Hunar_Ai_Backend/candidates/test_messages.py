@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .messaging import deliver_many, deliver_next_queued_message
-from .models import Candidate
+from .models import Candidate, Message
 
 
 class SendMessageApiTests(TestCase):
@@ -39,7 +39,6 @@ class SendMessageApiTests(TestCase):
             'Interview scheduled for tomorrow.',
         )
         self.assertEqual(response.json()['results'][0]['status'], 'Sent')
-
         message = self.candidate.messages.get()
         self.assertEqual(message.status, 'Sent')
 
@@ -56,6 +55,47 @@ class SendMessageApiTests(TestCase):
             re.compile(r'^\d{2}-\d{2}-\d{4}, \d{1,2}:\d{2} [AP]M$'),
         )
         self.assertEqual(history_item['status'], 'Sent')
+
+    @patch('candidates.views.requests.get')
+    def test_provider_health_includes_channel_specific_message_counts(self, get_health):
+        get_health.return_value.ok = True
+        get_health.return_value.json.return_value = {'status': 'operational'}
+        Message.objects.create(
+            candidate=self.candidate,
+            channel='WhatsApp',
+            text='Delivered message',
+            status='Delivered',
+            provider_message_id='whatsapp-1',
+        )
+        Message.objects.create(
+            candidate=self.candidate,
+            channel='WhatsApp',
+            text='Failed message',
+            status='Failed',
+        )
+        Message.objects.create(
+            candidate=self.candidate,
+            channel='SMS',
+            text='SMS message',
+            status='Sent',
+            provider_message_id='sms-1',
+        )
+
+        response = self.client.get(reverse('provider_health'))
+
+        self.assertEqual(response.status_code, 200)
+        providers = {
+            provider['name']: provider
+            for provider in response.json()['data']['providers']
+        }
+        self.assertEqual(
+            providers['WhatsApp']['counts'],
+            {'sent': 1, 'delivered': 1, 'failed': 1},
+        )
+        self.assertEqual(
+            providers['SMS']['counts'],
+            {'sent': 1, 'delivered': 0, 'failed': 0},
+        )
 
     @patch('candidates.messaging.call_provider', return_value='provider-message-123')
     def test_candidate_list_shows_delivered_and_read_webhook_statuses(self, _call_provider):
