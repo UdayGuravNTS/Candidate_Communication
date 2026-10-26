@@ -299,7 +299,22 @@ def send_message(request):
         )
         messages.append(msg)
 
-    delivered_messages = deliver_many(messages)
+    origin = (
+        request.headers.get("origin")
+        or request.headers.get("referer")
+        or request.headers.get("x-forwarded-host")
+    )
+    public_base = ""
+    if origin:
+        if not origin.startswith("http"):
+            proto = request.headers.get("x-forwarded-proto", "https")
+            origin = f"{proto}://{origin}"
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        if parsed.netloc and "127.0.0.1" not in parsed.netloc and "localhost" not in parsed.netloc:
+            public_base = f"{parsed.scheme}://{parsed.netloc}"
+
+    delivered_messages = deliver_many(messages, public_base_url=public_base)
 
     results = [{
             "candidateId": message.candidate_id,
@@ -394,8 +409,22 @@ def retry_message(request, message_id):
             "data": candidate_to_dict(candidate)
         }, status=503)
 
-    message.retry_count += 1
-    deliver(message)
+    origin = (
+        request.headers.get("origin")
+        or request.headers.get("referer")
+        or request.headers.get("x-forwarded-host")
+    )
+    public_base = ""
+    if origin:
+        if not origin.startswith("http"):
+            proto = request.headers.get("x-forwarded-proto", "https")
+            origin = f"{proto}://{origin}"
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        if parsed.netloc and "127.0.0.1" not in parsed.netloc and "localhost" not in parsed.netloc:
+            public_base = f"{parsed.scheme}://{parsed.netloc}"
+
+    deliver(message, public_base_url=public_base)
 
     refreshed_candidate = Candidate.objects.prefetch_related("messages").get(id=message.candidate_id)
     return Response({

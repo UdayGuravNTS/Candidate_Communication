@@ -145,7 +145,7 @@ FRONTEND_BASE_URL = "http://localhost:5173"
 
 
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL") or (
-    f"https://{os.environ['VERCEL_URL']}" if "VERCEL_URL" in os.environ else "http://127.0.0.1:8001"
+    f"https://{os.environ['VERCEL_URL']}" if "VERCEL_URL" in os.environ else "https://nest-compile-beef-donna.trycloudflare.com"
 )
 
 PROVIDER_URL = os.environ.get("PROVIDER_URL", "http://localhost:9000")

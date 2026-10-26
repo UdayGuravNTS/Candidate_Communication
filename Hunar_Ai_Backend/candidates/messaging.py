@@ -88,7 +88,7 @@ def check_provider_health():
     }
 
 
-def call_provider(to, body, channel="WhatsApp", email="", message_id=None):
+def call_provider(to, body, channel="WhatsApp", email="", message_id=None, public_base_url=""):
     """Calls the appropriate communication provider."""
 
     if channel == "Email":
@@ -127,7 +127,11 @@ def call_provider(to, body, channel="WhatsApp", email="", message_id=None):
         action_button = ""
         tracking_pixel = ""
         if message_id:
-            api_base = getattr(settings, 'PUBLIC_API_URL', 'http://127.0.0.1:8001').rstrip('/')
+            api_base = (
+                public_base_url
+                or getattr(django_settings, 'PUBLIC_API_URL', '')
+                or 'https://nest-compile-beef-donna.trycloudflare.com'
+            ).rstrip('/')
             track_url = f"{api_base}/api/track/read/{message_id}/"
             tracking_pixel = f'<img src="{track_url}" width="1" height="1" style="display:none;width:1px;height:1px;border:0;" alt="" />'
             action_button = f"""
@@ -235,7 +239,7 @@ def refresh_candidate_summary(candidate):
         candidate.save(update_fields=["status", "last_message"])
 
 
-def deliver(message):
+def deliver(message, public_base_url=""):
     """Sends one message. A failure is recorded on this message only."""
     try:
         message.provider_message_id = call_provider(
@@ -244,6 +248,7 @@ def deliver(message):
             channel=message.channel,
             email=message.candidate.email,
             message_id=message.id,
+            public_base_url=public_base_url,
         )
         message.status = "Delivered" if message.channel == "Email" else "Sent"
         message.failure_reason = ""
@@ -257,7 +262,7 @@ def deliver(message):
     return message
 
 
-def deliver_many(messages, max_workers=10):
+def deliver_many(messages, max_workers=10, public_base_url=""):
     def send_to_provider(message):
         try:
             pid = call_provider(
@@ -266,6 +271,7 @@ def deliver_many(messages, max_workers=10):
                 channel=message.channel,
                 email=message.candidate.email,
                 message_id=message.id,
+                public_base_url=public_base_url,
             )
             return message, pid, None
         except ProviderError as error:
