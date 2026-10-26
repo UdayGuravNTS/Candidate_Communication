@@ -23,7 +23,7 @@ function getApiBaseUrl(): string {
       return 'http://13.201.107.121:8006/api';
 
     case hostname === 'localhost' || hostname === '127.0.0.1':
-      return 'http://localhost:8000/api';
+      return 'http://localhost:8001/api';
 
     case hostname.endsWith('.com'):
       return `${protocol}//${hostname}/api`;

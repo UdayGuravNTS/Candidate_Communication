@@ -36,7 +36,7 @@ that database.
    npm run dev
    ```
 
-Vite proxies `/api` requests to `http://127.0.0.1:8000`. Keep both servers running while
+Vite proxies `/api` requests to `http://127.0.0.1:8001`. Keep both servers running while
 using the application.
 
 Set `VITE_API_URL` to override the API base URL and `VITE_APP_VERSION` to set the version.

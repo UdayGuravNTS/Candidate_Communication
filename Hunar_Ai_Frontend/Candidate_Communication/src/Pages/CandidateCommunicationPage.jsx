@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import HeaderActions from '../components/HeaderActions';
 import CandidateTable from '../components/CandidateTable';
 import Pagination from '../components/Pagination';
@@ -6,6 +6,7 @@ import AddCandidateModal from '../components/AddCandidateModal';
 import DeleteCandidateModal from '../components/DeleteCandidateModal';
 import SendMessageModal from '../components/SendMessageModal';
 import CandidateDrawer from '../components/CandidateDrawer';
+import ProviderHealthModal from '../components/ProviderHealthModal';
 import Toast from '../components/Toast';
 import CandidateApi from '../services/candidateApi';
 
@@ -22,6 +23,13 @@ export default function CandidateCommunicationPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Templates & Provider Health state
+  const [templates, setTemplates] = useState([]);
+  const [providerHealth, setProviderHealth] = useState(null);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  const [isTogglingOutage, setIsTogglingOutage] = useState(false);
+
   // Pagination state
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,6 +42,18 @@ export default function CandidateCommunicationPage() {
   const [toast, setToast] = useState(null);
 
   const [isSending, setIsSending] = useState(false);
+
+  // Initial load of Templates and Provider Health
+  useEffect(() => {
+    CandidateApi.getTemplates()
+      .then((data) => setTemplates(data))
+      .catch(() => {});
+
+    CandidateApi.getProviderHealth()
+      .then((health) => setProviderHealth(health))
+      .catch(() => {});
+  }, []);
+
 
   // Wait 400ms after typing stops before calling the API
   useEffect(() => {
@@ -75,10 +95,15 @@ export default function CandidateCommunicationPage() {
   }, [currentPage, pageSize, debouncedSearch, statusFilter, candidateReloadToken]);
 
 
-    const IN_FLIGHT = ['Queued', 'Sent', 'Delivered'];
-  const hasInFlight =
-    candidates.some((c) => IN_FLIGHT.includes(c.status)) ||
-    (activeCandidateDrawer?.history || []).some((m) => IN_FLIGHT.includes(m.status));
+  // Only poll if there is an active transient background dispatch in progress (Sending)
+  const IN_FLIGHT = useMemo(() => ['Sending'], []);
+
+  const hasInFlight = useMemo(
+    () =>
+      candidates.some((c) => IN_FLIGHT.includes(c.status)) ||
+      (activeCandidateDrawer?.history || []).some((m) => IN_FLIGHT.includes(m.status)),
+    [candidates, activeCandidateDrawer, IN_FLIGHT]
+  );
 
   useEffect(() => {
     if (!hasInFlight) return undefined;
@@ -97,7 +122,7 @@ export default function CandidateCommunicationPage() {
           prev ? fresh.find((c) => c.id === prev.id) || prev : prev
         );
       } catch {
-        // ignore, the next tick tries again
+        // ignore polling errors silently
       }
     }, 5000);
 
@@ -113,6 +138,47 @@ export default function CandidateCommunicationPage() {
       setToast(null);
     }, 4000);
   };
+
+  const handleToggleOutage = async (newDown) => {
+    setIsTogglingOutage(true);
+    try {
+      const updatedHealth = await CandidateApi.toggleProviderOutage(newDown);
+      setProviderHealth(updatedHealth);
+      showToast(
+        newDown
+          ? 'Provider outage simulated. Service is now offline.'
+          : 'Provider service restored. All channels operational.',
+        newDown ? 'error' : 'success'
+      );
+    } catch {
+      showToast('Failed to toggle provider outage mode.', 'error');
+    } finally {
+      setIsTogglingOutage(false);
+    }
+  };
+
+  const handleRefreshHealth = async () => {
+    setIsLoadingHealth(true);
+    try {
+      const h = await CandidateApi.getProviderHealth();
+      setProviderHealth(h);
+      showToast('Provider health updated.');
+    } catch {
+      showToast('Unable to check provider health.', 'error');
+    } finally {
+      setIsLoadingHealth(false);
+    }
+  };
+
+  const handleReloadTemplates = async () => {
+    try {
+      const tpls = await CandidateApi.getTemplates();
+      setTemplates(tpls);
+    } catch {
+      // quiet fail
+    }
+  };
+
 
   // Sort the current page's rows (client side)
   const sortedCandidates = useMemo(() => {
@@ -342,7 +408,9 @@ export default function CandidateCommunicationPage() {
         if (fresh) setActiveCandidateDrawer(fresh);
       }
 
-      if (summary.queued > 0) {
+      if (summary.scheduled && summary.scheduled > 0) {
+        showToast(`Message scheduled for ${summary.scheduled} candidate${summary.scheduled === 1 ? '' : 's'}.`);
+      } else if (summary.queued > 0) {
         showToast(`Message queued for ${summary.queued} candidate${summary.queued === 1 ? '' : 's'}.`);
       } else if (summary.failed === 0) {
         showToast(`Message sent to ${summary.sent} candidate${summary.sent > 1 ? 's' : ''}.`);
@@ -373,14 +441,48 @@ export default function CandidateCommunicationPage() {
       setActiveCandidateDrawer(updated);
       reloadCandidates();
       showToast(message, ok ? 'success' : 'error');
+
+      CandidateApi.getProviderHealth()
+        .then((h) => setProviderHealth(h))
+        .catch(() => {});
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Unable to retry message.', 'error');
     }
   };
 
-  // const handleRetryMessage = () => {
-  //   showToast('Messaging is not configured. No messages were sent.', 'error');
-  // };
+  const handleMarkRead = async (candidate, item) => {
+    try {
+      const { candidate: updated, message, ok } = await CandidateApi.markMessageRead(item.id);
+      setActiveCandidateDrawer(updated);
+      reloadCandidates();
+      showToast(message || 'Message status updated to read.', ok ? 'success' : 'error');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to mark message as read.', 'error');
+    }
+  };
+
+  // Auto-refresh data when the recruiter returns to this tab (e.g. after reading email in Gmail)
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      CandidateApi.getCandidates({
+        page: currentPage,
+        pageSize,
+        search: debouncedSearch,
+        status: statusFilter,
+      })
+        .then(({ candidates: fresh, totalCount: total }) => {
+          setCandidates(fresh);
+          setTotalCount(total);
+          setActiveCandidateDrawer((prev) =>
+            prev ? fresh.find((c) => c.id === prev.id) || prev : prev
+          );
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, [currentPage, pageSize, debouncedSearch, statusFilter]);
 
   const selectedCandidates = useMemo(() => {
     return candidates.filter((c) => selectedIds.includes(c.id));
@@ -403,6 +505,8 @@ export default function CandidateCommunicationPage() {
         onAddCandidate={() => setIsAddModalOpen(true)}
         onDeleteSelected={handleDeleteSelected}
         onSendMessage={() => setIsSendMessageModalOpen(true)}
+        onOpenHealth={() => setIsHealthModalOpen(true)}
+        providerHealth={providerHealth}
       />
 
       {/* Data Table */}
@@ -456,19 +560,15 @@ export default function CandidateCommunicationPage() {
       />
 
       {/* Send Message Modal */}
-      {/* <SendMessageModal
-        isOpen={isSendMessageModalOpen}
-        onClose={() => setIsSendMessageModalOpen(false)}
-        selectedCandidates={modalCandidates}
-        onSend={handleSendMessage}
-      /> */}
-
-            <SendMessageModal
+      <SendMessageModal
         isOpen={isSendMessageModalOpen}
         onClose={() => setIsSendMessageModalOpen(false)}
         selectedCandidates={selectedCandidates}
         onSend={handleSendMessage}
         isSending={isSending}
+        templates={templates}
+        onReloadTemplates={handleReloadTemplates}
+        providerHealth={providerHealth}
       />
 
       {/* Candidate Profile Details & History Drawer */}
@@ -481,6 +581,19 @@ export default function CandidateCommunicationPage() {
           setIsSendMessageModalOpen(true);
         }}
         onRetryMessage={handleRetryMessage}
+        onMarkRead={handleMarkRead}
+        providerHealth={providerHealth}
+      />
+
+      {/* Provider Health Modal */}
+      <ProviderHealthModal
+        isOpen={isHealthModalOpen}
+        onClose={() => setIsHealthModalOpen(false)}
+        health={providerHealth}
+        isLoading={isLoadingHealth}
+        onRefresh={handleRefreshHealth}
+        onToggleOutage={handleToggleOutage}
+        isTogglingOutage={isTogglingOutage}
       />
 
       {/* Feedback Toast */}

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { CheckIcon, CloseIcon, FailedIcon, RefreshIcon } from './Icons';
+import { FiClock, FiAlertCircle } from 'react-icons/fi';
 import EmptyCandidateIllustration from './EmptyCandidateIllustration';
 
 // "25-10-2026, 9:47 AM"  ->  { date: "25-10-2026", time: "9:47 AM" }
@@ -31,7 +32,9 @@ function getDateAndTime(item) {
 export default function CandidateDrawer({
   candidate,
   onClose,
-  onRetryMessage
+  onRetryMessage,
+  onMarkRead,
+  providerHealth
 }) {
   useEffect(() => {
     if (!candidate) return undefined;
@@ -47,18 +50,38 @@ export default function CandidateDrawer({
   if (!candidate) return null;
 
   const historyList = Array.isArray(candidate.history) ? candidate.history : [];
+  const isDown = providerHealth?.isDown || providerHealth?.status === 'outage';
 
   const renderStatusBadge = (status) => {
-    if (status === 'read' || status === 'Delivered') {
+    const s = String(status || '').trim().toLowerCase();
+    if (s === 'read') {
       return (
         <span className="history-status history-status-read">
           <CheckIcon size={13} />
-          <span>{status === 'read' ? 'read' : 'Delivered'}</span>
+          <span>read</span>
         </span>
       );
     }
 
-    if (status === 'Failed') {
+    if (s === 'delivered') {
+      return (
+        <span className="history-status history-status-delivered">
+          <CheckIcon size={13} />
+          <span>Delivered</span>
+        </span>
+      );
+    }
+
+    if (s === 'scheduled') {
+      return (
+        <span className="history-status history-status-scheduled">
+          <FiClock size={12} />
+          <span>Scheduled</span>
+        </span>
+      );
+    }
+
+    if (s === 'failed') {
       return (
         <span className="history-status history-status-failed">
           <FailedIcon size={13} />
@@ -117,6 +140,7 @@ export default function CandidateDrawer({
             <section className="history-message-list" aria-label="Messages">
               {historyList.map((item, index) => {
                 const { date, time } = getDateAndTime(item);
+                const isRetryable = item.canRetry !== false;
 
                 return (
                   <article className="history-message" key={item.id || index}>
@@ -129,24 +153,72 @@ export default function CandidateDrawer({
                             <span>{time}</span>
                           </>
                         )}
+                        {item.channel && (
+                          <>
+                            <span className="history-message-separator">|</span>
+                            <span className="history-channel-tag">{item.channel}</span>
+                          </>
+                        )}
                       </div>
                       {renderStatusBadge(item.status)}
                     </div>
 
+                    {item.status === 'Scheduled' && item.scheduledAt && (
+                      <div className="history-scheduled-info">
+                        <FiClock size={13} />
+                        <span>Scheduled for: {item.scheduledAt}</span>
+                      </div>
+                    )}
+
                     <p className="history-message-text">{item.text || item.message}</p>
+
+                    {['delivered', 'sent'].includes(String(item.status || '').toLowerCase()) && onMarkRead && (
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          type="button"
+                          className="history-mark-read-button"
+                          onClick={() => onMarkRead(candidate, item)}
+                          title="Simulate / Mark message as read"
+                        >
+                          <CheckIcon size={12} />
+                          <span>Mark as Read</span>
+                        </button>
+                      </div>
+                    )}
 
                     {item.status === 'Failed' && (
                       <div className="history-failure-details">
-                        <p>{item.failureReason || 'Message delivery failed.'}</p>
-                        {item.canRetry !== false && (
+                        <div className="failure-reason-row">
+                          <p className="failure-text">{item.failureReason || 'Message delivery failed.'}</p>
+                          <span className={`failure-nature-pill ${isRetryable ? 'nature-retryable' : 'nature-permanent'}`}>
+                            {isRetryable ? 'Retryable' : 'Permanent'}
+                          </span>
+                        </div>
+
+                        {isDown && isRetryable && (
+                          <div className="provider-outage-retry-warning">
+                            <FiAlertCircle size={13} />
+                            <span>Provider is unavailable. Retries are held until service restores.</span>
+                          </div>
+                        )}
+
+                        {isRetryable && (
                           <button
                             type="button"
                             className="history-retry-button"
                             onClick={() => onRetryMessage(candidate, item)}
+                            disabled={isDown}
+                            title={isDown ? 'Provider is down. Retries unavailable.' : 'Retry sending this message'}
                           >
                             <RefreshIcon size={13} />
                             <span>Retry message</span>
                           </button>
+                        )}
+
+                        {!isRetryable && (
+                          <p className="failure-permanent-notice">
+                            This failure is permanent. Please update the candidate's contact info before sending a new message.
+                          </p>
                         )}
                       </div>
                     )}
@@ -159,4 +231,4 @@ export default function CandidateDrawer({
       </aside>
     </div>
   );
-}
+}

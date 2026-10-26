@@ -9,12 +9,27 @@ export default function HeaderActions({
   onAddCandidate,
   onDeleteSelected,
   onSendMessage,
-  onOpenHealth
+  onOpenHealth,
+  providerHealth
 }) {
+  const isDown = providerHealth?.isDown || providerHealth?.status === 'outage';
+
   return (
     <header className="page-header">
       <div className="page-title-wrap">
         <h1 className="page-title">Candidate communication</h1>
+        <button
+          type="button"
+          className={`provider-health-badge ${isDown ? 'health-badge-down' : 'health-badge-operational'}`}
+          onClick={onOpenHealth}
+          id="btn-provider-health"
+          title="Click to view Communication Service Health and Provider Metrics"
+        >
+          <span className={`health-dot ${isDown ? 'dot-red' : 'dot-green'}`} />
+          <span className="health-badge-text">
+            {isDown ? 'Service Outage' : 'Service Operational'}
+          </span>
+        </button>
       </div>
 
       <div className="header-actions">

@@ -7,6 +7,7 @@ import {
   SortDescIcon
 } from './Icons';
 import { IoFilter } from "react-icons/io5";
+import { FiClock } from "react-icons/fi";
 import EmptyCandidateIllustration from './EmptyCandidateIllustration';
 
 export default function CandidateTable({
@@ -39,7 +40,8 @@ export default function CandidateTable({
   };
 
   const renderStatusBadge = (status) => {
-    if (status === 'read') {
+    const s = String(status || '').trim().toLowerCase();
+    if (s === 'read') {
       return (
         <span className="status-pill status-read">
           <CheckIcon size={12} className="status-icon" />
@@ -47,7 +49,7 @@ export default function CandidateTable({
         </span>
       );
     }
-    if (status === 'Failed') {
+    if (s === 'failed') {
       return (
         <span className="status-pill status-failed">
           <FailedIcon size={13} className="status-icon" />
@@ -56,17 +58,25 @@ export default function CandidateTable({
       );
     }
 
- // ===== ADD THIS NEW BLOCK HERE =====
-    if (status === 'Delivered') {
+    if (s === 'delivered') {
       return (
-        <span className="status-pill status-sent">
+        <span className="status-pill status-delivered">
           <CheckIcon size={12} className="status-icon" />
           <span>Delivered</span>
         </span>
       );
     }
 
-    if (status === 'Sent') {
+    if (s === 'scheduled') {
+      return (
+        <span className="status-pill status-scheduled">
+          <FiClock size={12} className="status-icon" />
+          <span>Scheduled</span>
+        </span>
+      );
+    }
+
+    if (s === 'sent') {
       return (
         <span className="status-pill status-sent">
           <span>Sent</span>
@@ -139,8 +149,7 @@ export default function CandidateTable({
               {filterMenuOpen && (
                 <div className="status-filter-menu" onClick={(e) => e.stopPropagation()}>
                   <div className="status-filter-header">Filter by Status</div>
-                  {/* {['all', 'read', 'Failed', 'Sent', 'NA'].map((st) => ( */}
-                  {['all', 'Sent', 'Delivered', 'read', 'Failed', 'NA'].map((st) => (
+                  {['all', 'Sent', 'Delivered', 'read', 'Scheduled', 'Failed', 'NA'].map((st) => (
                     <div
                       key={st}
                       className={`status-filter-option ${statusFilter === st ? 'active' : ''}`}
