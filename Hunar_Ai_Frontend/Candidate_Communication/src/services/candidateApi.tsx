@@ -207,7 +207,7 @@ export default class CandidateApi {
       '/templates/',
       payload
     );
-    return response.data;
+    return response.data;  
   }
 
   static async deleteTemplate(templateId: number): Promise<void> {
@@ -227,4 +227,4 @@ export default class CandidateApi {
     );
     return response.health;
   }
-}
+}
