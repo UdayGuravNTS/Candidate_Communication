@@ -9,22 +9,17 @@ class ApiCorsMiddleware:
 
     def __call__(self, request):
         origin = request.headers.get('Origin')
-        allow_all = getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False)
-        is_allowed_origin = (
-            allow_all
-            or (origin in settings.CORS_ALLOWED_ORIGINS)
-            or (origin and ('.vercel.app' in origin or 'localhost' in origin or '127.0.0.1' in origin))
-        )
+        is_allowed_origin = origin in settings.CORS_ALLOWED_ORIGINS
 
         if request.method == 'OPTIONS' and is_allowed_origin:
             response = HttpResponse(status=204)
         else:
             response = self.get_response(request)
 
-        if is_allowed_origin and origin:
+        if is_allowed_origin:
             response['Access-Control-Allow-Origin'] = origin
-            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type'
             patch_vary_headers(response, ['Origin'])
 
         return response

@@ -17,19 +17,14 @@ function getApiBaseUrl(): string {
     return configuredApiUrl.replace(/\/+$/, '');
   }
 
-  const { hostname, protocol } = window.location;
+  const { hostname } = window.location;
   switch (true) {
     case hostname === '13.201.107.121':
       return 'http://13.201.107.121:8006/api';
 
-    case hostname === 'localhost' || hostname === '127.0.0.1':
-      return 'http://localhost:8001/api';
-
-    case hostname.endsWith('.com'):
-      return `${protocol}//${hostname}/api`;
-      
     default:
-      return `${protocol}//${hostname}/api`;
+      // Uses same-origin /api (works with Vite proxy, vercel dev, and production rewrites)
+      return '/api';
   }
 }
 

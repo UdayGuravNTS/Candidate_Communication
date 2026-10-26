@@ -127,7 +127,8 @@ def call_provider(to, body, channel="WhatsApp", email="", message_id=None):
         action_button = ""
         tracking_pixel = ""
         if message_id:
-            track_url = f"http://127.0.0.1:8001/api/track/read/{message_id}/"
+            api_base = getattr(settings, 'PUBLIC_API_URL', 'http://127.0.0.1:8001').rstrip('/')
+            track_url = f"{api_base}/api/track/read/{message_id}/"
             tracking_pixel = f'<img src="{track_url}" width="1" height="1" style="display:none;width:1px;height:1px;border:0;" alt="" />'
             action_button = f"""
     <div style="margin-top:24px;padding:16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">

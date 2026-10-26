@@ -1,0 +1,52 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "hunar_ai_backend": {
+      "root": "Hunar_Ai_Backend",
+      "framework": "django",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "dummy_provider",
+          "format": "url",
+          "env": "PROVIDER_URL"
+        }
+      ]
+    },
+    "dummy_provider": {
+      "root": "Hunar_Ai_Backend/dummy_provider",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "hunar_ai_backend",
+          "format": "url",
+          "env": "BACKEND_URL"
+        }
+      ]
+    },
+    "candidate_communication": {
+      "root": "Hunar_Ai_Frontend/Candidate_Communication",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "hunar_ai_backend"
+      }
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": {
+        "service": "hunar_ai_backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "candidate_communication"
+      }
+    }
+  ]
+}

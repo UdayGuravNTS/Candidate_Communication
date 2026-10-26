@@ -8,7 +8,8 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-WEBHOOK_URL = "http://localhost:8000/api/webhooks/provider/"
+BACKEND_URL = os.environ.get("BACKEND_URL") or os.environ.get("HUNAR_AI_BACKEND_URL", "http://localhost:8001")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", f"{BACKEND_URL.rstrip('/')}/api/webhooks/provider/")
 WEBHOOK_SECRET = os.environ.get("PROVIDER_WEBHOOK_SECRET", "dev-secret")
 
 messages = {}

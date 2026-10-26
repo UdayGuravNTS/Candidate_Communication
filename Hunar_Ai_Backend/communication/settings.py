@@ -29,9 +29,7 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '13.201.107.121']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
@@ -45,7 +43,6 @@ CORS_ALLOWED_ORIGINS.extend(
     if origin.strip()
 )
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS))
-
 
 
 # Application definition
@@ -138,7 +135,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -148,7 +144,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 FRONTEND_BASE_URL = "http://localhost:5173"
 
 
-PROVIDER_URL = "http://localhost:9000"
+PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL") or (
+    f"https://{os.environ['VERCEL_URL']}" if "VERCEL_URL" in os.environ else "http://127.0.0.1:8001"
+)
+
+PROVIDER_URL = os.environ.get("PROVIDER_URL", "http://localhost:9000")
 PROVIDER_WEBHOOK_SECRET = os.environ.get("PROVIDER_WEBHOOK_SECRET", "dev-secret")
 USE_TZ = True
 
