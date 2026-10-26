@@ -4,6 +4,7 @@
     "hunar_ai_backend": {
       "root": "Hunar_Ai_Backend",
       "framework": "django",
+      "entrypoint": "communication/wsgi.py",
       "bindings": [
         {
           "type": "service",
@@ -15,6 +16,8 @@
     },
     "dummy_provider": {
       "root": "Hunar_Ai_Backend/dummy_provider",
+      "framework": "flask",
+      "entrypoint": "app.py",
       "bindings": [
         {
           "type": "service",
