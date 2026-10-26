@@ -266,6 +266,6 @@ The dummy provider simulates third-party messaging APIs (WhatsApp/SMS) and deliv
 | `CORS_ALLOWED_ORIGINS`| `http://localhost:5173` | Allowed CORS origins for frontend |
 
 ---
-
+  
 ## 👥 Authors & Acknowledgments
 Built with ❤️ for **Hunar AI** Candidate Communication Assessment.
