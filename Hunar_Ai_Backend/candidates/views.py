@@ -597,7 +597,7 @@ def track_message_read(request, message_id):
         .btn { display: inline-block; background: #64748b; color: #ffffff; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s ease; }
         .btn:hover { background: #475569; }
         .hint { display: none; margin-top: 16px; font-size: 13px; color: #64748b; line-height: 1.4; }
-    </style>
+    </style>   
 </head>
 <body>
     <div class="card">
